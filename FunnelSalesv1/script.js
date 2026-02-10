@@ -12,6 +12,31 @@ document.addEventListener('DOMContentLoaded', () => {
         return div.innerHTML.trim();
     }
 
+    // --- UTM Parameter Tracking ---
+    function getUTMParameters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return {
+            utm_source: urlParams.get('utm_source') || '',
+            utm_medium: urlParams.get('utm_medium') || '',
+            utm_campaign: urlParams.get('utm_campaign') || '',
+            utm_content: urlParams.get('utm_content') || '',
+            utm_term: urlParams.get('utm_term') || '',
+            referrer: document.referrer || ''
+        };
+    }
+
+    // Store UTM parameters in sessionStorage when page loads
+    const utmParams = getUTMParameters();
+    if (utmParams.utm_source || utmParams.utm_medium || utmParams.utm_campaign) {
+        sessionStorage.setItem('gs_utm_params', JSON.stringify(utmParams));
+    } else {
+        // Try to retrieve stored UTM params from session
+        const storedUTM = sessionStorage.getItem('gs_utm_params');
+        if (storedUTM) {
+            Object.assign(utmParams, JSON.parse(storedUTM));
+        }
+    }
+
     // --- Intersection Observer for fade-up animations ---
     const observerOptions = {
         threshold: 0.1,
@@ -193,6 +218,18 @@ document.addEventListener('DOMContentLoaded', () => {
         function openModal() {
             modal.classList.add('active');
             document.body.classList.add('modal-open');
+
+            // Track modal open
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'form_modal_open', {
+                    event_category: 'engagement',
+                    event_label: 'Main Form Modal'
+                });
+            }
+            if (typeof fbq !== 'undefined') {
+                fbq('track', 'Lead');
+            }
+
             // Focus first input after animation
             setTimeout(() => {
                 const firstInput = modal.querySelector('.form-input');
@@ -263,11 +300,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     brand: sanitize(brand.value),
                     adSpend: adSpendChip ? adSpendChip.dataset.value : '',
                     businessType: bizTypeChip ? bizTypeChip.dataset.value : '',
-                    submittedAt: new Date().toISOString()
+                    submittedAt: new Date().toISOString(),
+                    ...utmParams  // Include UTM parameters
                 };
 
                 // Store current lead for TY page (only keep latest, don't accumulate)
                 localStorage.setItem('gs_current_lead', JSON.stringify(leadData));
+
+                // Track form submission
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'generate_lead', {
+                        event_category: 'conversion',
+                        event_label: 'Main Form Submission',
+                        value: leadData.adSpend
+                    });
+                }
+                if (typeof fbq !== 'undefined') {
+                    fbq('track', 'SubmitApplication', {
+                        content_name: 'Strategy Call Form',
+                        content_category: 'Lead Form'
+                    });
+                }
 
                 // Show loading state (safe DOM manipulation, no innerHTML)
                 const submitBtn = leadForm.querySelector('.btn-submit');
@@ -351,6 +404,18 @@ document.addEventListener('DOMContentLoaded', () => {
         function openAuditModal() {
             auditModal.classList.add('active');
             document.body.classList.add('modal-open');
+
+            // Track audit modal open
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'form_modal_open', {
+                    event_category: 'engagement',
+                    event_label: 'Audit Form Modal'
+                });
+            }
+            if (typeof fbq !== 'undefined') {
+                fbq('track', 'Lead');
+            }
+
             setTimeout(() => {
                 const firstInput = auditModal.querySelector('.form-input');
                 if (firstInput) firstInput.focus();
@@ -421,11 +486,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     platform: platformChip ? platformChip.dataset.value : '',
                     adSpend: adSpendChip ? adSpendChip.dataset.value : '',
                     businessType: bizTypeChip ? bizTypeChip.dataset.value : '',
-                    submittedAt: new Date().toISOString()
+                    submittedAt: new Date().toISOString(),
+                    ...utmParams  // Include UTM parameters
                 };
 
                 // Store current lead for TY page
                 localStorage.setItem('gs_current_lead', JSON.stringify(auditData));
+
+                // Track audit form submission
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'generate_lead', {
+                        event_category: 'conversion',
+                        event_label: 'Audit Form Submission',
+                        value: auditData.adSpend
+                    });
+                }
+                if (typeof fbq !== 'undefined') {
+                    fbq('track', 'SubmitApplication', {
+                        content_name: 'Free Audit Form',
+                        content_category: 'Lead Form'
+                    });
+                }
 
                 // Show loading state
                 const submitBtn = auditLeadForm.querySelector('.btn-submit');
@@ -522,6 +603,234 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             requestAnimationFrame(update);
+        });
+    }
+
+    // --- Mobile Sticky CTA Bar ---
+    const mobileStickyCta = document.getElementById('mobileStickyCta');
+
+    if (mobileStickyCta) {
+        let stickyShown = false;
+
+        window.addEventListener('scroll', () => {
+            const scrollPosition = window.pageYOffset;
+
+            // Show after scrolling down 400px
+            if (scrollPosition > 400 && !stickyShown) {
+                mobileStickyCta.classList.add('show');
+                stickyShown = true;
+
+                // Track sticky CTA shown
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'mobile_sticky_cta_shown', {
+                        event_category: 'engagement',
+                        event_label: 'Mobile Sticky CTA'
+                    });
+                }
+            } else if (scrollPosition <= 200 && stickyShown) {
+                // Hide when scrolled back to top
+                mobileStickyCta.classList.remove('show');
+                stickyShown = false;
+            }
+        }, { passive: true });
+    }
+
+    // --- Urgency Countdown (Spots Left) ---
+    const urgencyBanner = document.getElementById('urgencyBanner');
+    const spotsLeftEl = document.getElementById('spotsLeft');
+
+    if (spotsLeftEl) {
+        const isAuditPage = document.body.classList.contains('audit-page');
+        const today = new Date();
+        const dayOfMonth = today.getDate();
+        const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+        // Calculate spots based on day of month
+        // Main page: starts with 5 spots, audit page: starts with 10 spots
+        const maxSpots = isAuditPage ? 10 : 5;
+        const spotsUsed = Math.floor((dayOfMonth / daysInMonth) * (maxSpots - 1));
+        const spotsRemaining = Math.max(1, maxSpots - spotsUsed); // Never go below 1
+
+        spotsLeftEl.textContent = spotsRemaining;
+
+        // Update urgency banner color when very low
+        if (spotsRemaining <= 2) {
+            urgencyBanner.style.animation = 'pulse-urgency 1.5s ease-in-out infinite';
+        }
+    }
+
+    // --- Social Proof Notifications ---
+    const socialProof = document.getElementById('socialProof');
+
+    if (socialProof) {
+        // Determine which page we're on
+        const isAuditPage = document.body.classList.contains('audit-page');
+
+        // Different data for main page vs audit page
+        const mainPageNotifications = [
+            { name: 'Sarah M.', action: 'just booked a strategy call', time: '2 minutes ago' },
+            { name: 'David K.', action: 'just booked a strategy call', time: '5 minutes ago' },
+            { name: 'Jessica T.', action: 'just booked a strategy call', time: '8 minutes ago' },
+            { name: 'Marcus P.', action: 'just booked a strategy call', time: '12 minutes ago' },
+            { name: 'Rachel L.', action: 'just booked a strategy call', time: '18 minutes ago' },
+            { name: 'Brandon W.', action: 'just booked a strategy call', time: '23 minutes ago' },
+            { name: 'Emily C.', action: 'just booked a strategy call', time: '31 minutes ago' }
+        ];
+
+        const auditPageNotifications = [
+            { name: 'Michael R.', action: 'just claimed their free audit', time: '3 minutes ago' },
+            { name: 'Amanda S.', action: 'just claimed their free audit', time: '7 minutes ago' },
+            { name: 'Tyler H.', action: 'just claimed their free audit', time: '11 minutes ago' },
+            { name: 'Natalie D.', action: 'just claimed their free audit', time: '15 minutes ago' },
+            { name: 'Connor B.', action: 'just claimed their free audit', time: '22 minutes ago' },
+            { name: 'Sophia V.', action: 'just claimed their free audit', time: '28 minutes ago' },
+            { name: 'Jordan F.', action: 'just claimed their free audit', time: '35 minutes ago' }
+        ];
+
+        const notifications = isAuditPage ? auditPageNotifications : mainPageNotifications;
+        let currentIndex = 0;
+
+        function showSocialProof() {
+            const notification = notifications[currentIndex];
+
+            // Update content
+            document.getElementById('socialProofName').textContent = notification.name;
+            document.getElementById('socialProofAction').textContent = notification.action;
+            document.getElementById('socialProofTime').textContent = notification.time;
+
+            // Show notification
+            socialProof.classList.add('show');
+
+            // Track notification shown
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'social_proof_shown', {
+                    event_category: 'engagement',
+                    event_label: notification.name
+                });
+            }
+
+            // Hide after 6 seconds
+            setTimeout(() => {
+                socialProof.classList.remove('show');
+            }, 6000);
+
+            // Move to next notification
+            currentIndex = (currentIndex + 1) % notifications.length;
+        }
+
+        // Show first notification after 8 seconds
+        setTimeout(() => {
+            showSocialProof();
+
+            // Then show new notifications every 20-30 seconds
+            setInterval(() => {
+                showSocialProof();
+            }, Math.random() * 10000 + 20000); // Random interval between 20-30 seconds
+        }, 8000);
+    }
+
+    // --- Exit Intent Modal ---
+    const exitIntentModal = document.getElementById('exitIntentModal');
+    const exitIntentClose = document.getElementById('exitIntentClose');
+    const exitIntentCta = document.querySelector('.exit-intent-cta');
+    const exitIntentCtaAudit = document.querySelector('.exit-intent-cta-audit');
+    const exitIntentDismiss = document.querySelector('.exit-intent-dismiss');
+
+    if (exitIntentModal) {
+        let exitIntentShown = sessionStorage.getItem('exitIntentShown');
+        let exitIntentTriggered = false;
+
+        // Detect mouse leaving from top of viewport
+        document.addEventListener('mouseleave', (e) => {
+            // Only trigger if mouse leaves from top (y <= 10)
+            if (e.clientY <= 10 && !exitIntentShown && !exitIntentTriggered) {
+                exitIntentTriggered = true;
+
+                // Small delay to feel less aggressive
+                setTimeout(() => {
+                    showExitIntent();
+                }, 200);
+            }
+        });
+
+        function showExitIntent() {
+            exitIntentModal.classList.add('active');
+            sessionStorage.setItem('exitIntentShown', 'true');
+            exitIntentShown = true;
+
+            // Track exit intent popup shown
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'exit_intent_shown', {
+                    event_category: 'engagement',
+                    event_label: 'Exit Intent Popup'
+                });
+            }
+            if (typeof fbq !== 'undefined') {
+                fbq('trackCustom', 'ExitIntentShown');
+            }
+        }
+
+        function hideExitIntent() {
+            exitIntentModal.classList.remove('active');
+        }
+
+        // Close button
+        if (exitIntentClose) {
+            exitIntentClose.addEventListener('click', hideExitIntent);
+        }
+
+        // Backdrop click
+        const exitBackdrop = exitIntentModal.querySelector('.exit-intent-backdrop');
+        if (exitBackdrop) {
+            exitBackdrop.addEventListener('click', hideExitIntent);
+        }
+
+        // CTA button - opens main form modal
+        if (exitIntentCta) {
+            exitIntentCta.addEventListener('click', () => {
+                hideExitIntent();
+                // Open the main form modal
+                if (modal) {
+                    setTimeout(() => {
+                        modal.classList.add('active');
+                        document.body.classList.add('modal-open');
+                        setTimeout(() => {
+                            const firstInput = modal.querySelector('.form-input');
+                            if (firstInput) firstInput.focus();
+                        }, 350);
+                    }, 300);
+                }
+            });
+        }
+
+        // CTA button for audit page - opens audit form modal
+        if (exitIntentCtaAudit) {
+            exitIntentCtaAudit.addEventListener('click', () => {
+                hideExitIntent();
+                // Open the audit form modal
+                if (auditModal) {
+                    setTimeout(() => {
+                        auditModal.classList.add('active');
+                        document.body.classList.add('modal-open');
+                        setTimeout(() => {
+                            const firstInput = auditModal.querySelector('.form-input');
+                            if (firstInput) firstInput.focus();
+                        }, 350);
+                    }, 300);
+                }
+            });
+        }
+
+        // Dismiss button
+        if (exitIntentDismiss) {
+            exitIntentDismiss.addEventListener('click', hideExitIntent);
+        }
+
+        // Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && exitIntentModal.classList.contains('active')) {
+                hideExitIntent();
+            }
         });
     }
 
