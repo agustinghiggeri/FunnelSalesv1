@@ -2699,3 +2699,59 @@ body.light-theme .exit-intent-close:hover {
     background: rgba(0, 0, 0, 0.1);
     color: #0a0a0a;
 }
+
+/* Light theme - 2-Step Form */
+body.light-theme .form-progress-label {
+    color: #4a5568;
+}
+
+body.light-theme .form-progress-bar {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+body.light-theme .form-progress-fill {
+    box-shadow: 0 0 20px rgba(109, 90, 205, 0.3);
+}
+
+body.light-theme .step-title {
+    color: #0a0a0a;
+}
+
+body.light-theme .step-subtitle {
+    color: #4a5568;
+}
+
+body.light-theme .step-summary {
+    background: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .step-summary-label {
+    color: #718096;
+}
+
+body.light-theme .step-summary-value {
+    color: #0a0a0a;
+}
+
+body.light-theme .step-summary-icon {
+    background: rgba(109, 90, 205, 0.1);
+    color: #6d5acd;
+}
+
+body.light-theme .btn-back {
+    background: #f8f9fa;
+    border: 1.5px solid rgba(0, 0, 0, 0.15);
+    color: #2d3748;
+}
+
+body.light-theme .btn-back:hover {
+    background: #e9ecef;
+    border-color: rgba(109, 90, 205, 0.4);
+    color: #0a0a0a;
+}
+
+body.light-theme .step-trust {
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    color: #718096;
+}
