@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://connect.facebook.net https://script.google.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://www.googletagmanager.com https://connect.facebook.net https://script.google.com https://www.google-analytics.com https://www.facebook.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self' https://script.google.com;">
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=()">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>Scale to $10k/Day Without the Agency Tax | Growth Systems</title>
     <meta name="description" content="The same systems that scaled 7-figure brands - without junior account managers, bloated retainers, or platform management theater.">
@@ -731,20 +734,20 @@
                     <!-- Email -->
                     <div class="form-group">
                         <label class="form-label" for="leadEmail">EMAIL <span class="required">*</span></label>
-                        <input class="form-input" type="email" id="leadEmail" name="email" placeholder="you@brand.com" required>
+                        <input class="form-input" type="email" id="leadEmail" name="email" placeholder="you@brand.com" required maxlength="254" autocomplete="email">
                         <span class="form-error" id="emailError">Please enter a valid email address</span>
                     </div>
 
                     <!-- Phone -->
                     <div class="form-group">
                         <label class="form-label" for="leadPhone">PHONE</label>
-                        <input class="form-input" type="tel" id="leadPhone" name="phone" placeholder="+1 (555) 000-0000">
+                        <input class="form-input" type="tel" id="leadPhone" name="phone" placeholder="+1 (555) 000-0000" maxlength="20" autocomplete="tel">
                     </div>
 
                     <!-- Brand Name -->
                     <div class="form-group">
                         <label class="form-label" for="leadBrand">BRAND NAME <span class="required">*</span></label>
-                        <input class="form-input" type="text" id="leadBrand" name="brand" placeholder="Your brand or company" required>
+                        <input class="form-input" type="text" id="leadBrand" name="brand" placeholder="Your brand or company" required maxlength="100" autocomplete="organization">
                         <span class="form-error" id="brandError">Please enter your brand name</span>
                     </div>
 
@@ -840,6 +843,8 @@
         </div>
     </div>
 
+    <!-- DOMPurify for secure HTML sanitization -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js" integrity="sha384-6wXnC2p5OM4hdV3F7LqgJCJEhFZXI/oXTZF5sI0MqkFPg2xVVF6k" crossorigin="anonymous"></script>
     <script src="script.js"></script>
 </body>
 </html>
