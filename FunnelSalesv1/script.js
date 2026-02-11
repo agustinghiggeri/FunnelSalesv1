@@ -159,6 +159,218 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ============================================
+    // 2-STEP FORM NAVIGATION
+    // ============================================
+
+    // --- Main Form (leadForm) Step Navigation ---
+    function setupLeadFormSteps() {
+        const step1 = document.getElementById('leadStep1');
+        const step2 = document.getElementById('leadStep2');
+        const continueBtn = document.getElementById('leadContinueBtn');
+        const backBtn = document.getElementById('leadBackBtn');
+        const currentStepEl = document.getElementById('currentStep');
+        const progressFill = document.getElementById('progressFill');
+        const progressPercent = document.getElementById('progressPercent');
+        const step1Summary = document.getElementById('step1Summary');
+
+        if (!step1 || !step2 || !continueBtn) return;
+
+        // Step 1 -> Step 2
+        continueBtn.addEventListener('click', () => {
+            // Validate step 1 fields
+            const email = document.getElementById('leadEmail');
+            const phone = document.getElementById('leadPhone');
+            let valid = true;
+
+            // Clear previous errors
+            email.classList.remove('error');
+            phone.classList.remove('error');
+
+            // Validate email
+            if (!validateEmail(email.value)) {
+                email.classList.add('error');
+                valid = false;
+            }
+
+            // Validate phone if provided
+            if (phone.value && !validatePhone(phone.value)) {
+                phone.classList.add('error');
+                valid = false;
+            }
+
+            if (!valid) return;
+
+            // Save step 1 data
+            const step1Data = {
+                email: sanitize(email.value),
+                phone: sanitize(phone.value)
+            };
+            sessionStorage.setItem('leadForm_step1', JSON.stringify(step1Data));
+
+            // Update summary
+            const summaryText = phone.value
+                ? `${email.value} • ${phone.value}`
+                : email.value;
+            step1Summary.textContent = summaryText;
+
+            // Animate transition
+            step1.classList.remove('active');
+            step1.classList.add('exiting');
+
+            setTimeout(() => {
+                step1.style.display = 'none';
+                step1.classList.remove('exiting');
+                step2.classList.add('active');
+                step2.style.display = 'block';
+
+                // Update progress
+                currentStepEl.textContent = '2';
+                progressFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                // Focus first input in step 2
+                const brandInput = document.getElementById('leadBrand');
+                if (brandInput) brandInput.focus();
+
+                // Track step 2 view
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'form_step_2_view', {
+                        event_category: 'form',
+                        event_label: 'Main Form Step 2'
+                    });
+                }
+            }, 300);
+        });
+
+        // Step 2 -> Step 1 (Back button)
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                step2.classList.remove('active');
+                step2.classList.add('exiting');
+
+                setTimeout(() => {
+                    step2.style.display = 'none';
+                    step2.classList.remove('exiting');
+                    step1.classList.add('active');
+                    step1.style.display = 'block';
+
+                    // Update progress
+                    currentStepEl.textContent = '1';
+                    progressFill.style.width = '50%';
+                    progressPercent.textContent = '50%';
+                }, 300);
+            });
+        }
+    }
+
+    // --- Audit Form (auditLeadForm) Step Navigation ---
+    function setupAuditFormSteps() {
+        const step1 = document.getElementById('auditStep1');
+        const step2 = document.getElementById('auditStep2');
+        const continueBtn = document.getElementById('auditContinueBtn');
+        const backBtn = document.getElementById('auditBackBtn');
+        const currentStepEl = document.getElementById('auditCurrentStep');
+        const progressFill = document.getElementById('auditProgressFill');
+        const progressPercent = document.getElementById('auditProgressPercent');
+        const step1Summary = document.getElementById('auditStep1Summary');
+
+        if (!step1 || !step2 || !continueBtn) return;
+
+        // Step 1 -> Step 2
+        continueBtn.addEventListener('click', () => {
+            // Validate step 1 fields
+            const email = document.getElementById('auditEmail');
+            const phone = document.getElementById('auditPhone');
+            let valid = true;
+
+            // Clear previous errors
+            email.classList.remove('error');
+            phone.classList.remove('error');
+
+            // Validate email
+            if (!validateEmail(email.value)) {
+                email.classList.add('error');
+                valid = false;
+            }
+
+            // Validate phone if provided
+            if (phone.value && !validatePhone(phone.value)) {
+                phone.classList.add('error');
+                valid = false;
+            }
+
+            if (!valid) return;
+
+            // Save step 1 data
+            const step1Data = {
+                email: sanitize(email.value),
+                phone: sanitize(phone.value)
+            };
+            sessionStorage.setItem('auditForm_step1', JSON.stringify(step1Data));
+
+            // Update summary
+            const summaryText = phone.value
+                ? `${email.value} • ${phone.value}`
+                : email.value;
+            step1Summary.textContent = summaryText;
+
+            // Animate transition
+            step1.classList.remove('active');
+            step1.classList.add('exiting');
+
+            setTimeout(() => {
+                step1.style.display = 'none';
+                step1.classList.remove('exiting');
+                step2.classList.add('active');
+                step2.style.display = 'block';
+
+                // Update progress
+                currentStepEl.textContent = '2';
+                progressFill.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                // Focus first input in step 2
+                const brandInput = document.getElementById('auditBrand');
+                if (brandInput) brandInput.focus();
+
+                // Track step 2 view
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'form_step_2_view', {
+                        event_category: 'form',
+                        event_label: 'Audit Form Step 2'
+                    });
+                }
+            }, 300);
+        });
+
+        // Step 2 -> Step 1 (Back button)
+        if (backBtn) {
+            backBtn.addEventListener('click', () => {
+                step2.classList.remove('active');
+                step2.classList.add('exiting');
+
+                setTimeout(() => {
+                    step2.style.display = 'none';
+                    step2.classList.remove('exiting');
+                    step1.classList.add('active');
+                    step1.style.display = 'block';
+
+                    // Update progress
+                    currentStepEl.textContent = '1';
+                    progressFill.style.width = '50%';
+                    progressPercent.textContent = '50%';
+                }, 300);
+            });
+        }
+    }
+
+    // Initialize step navigation when modals are available
+    setTimeout(() => {
+        setupLeadFormSteps();
+        setupAuditFormSteps();
+    }, 100);
+
     // --- Intersection Observer for fade-up animations ---
     const observerOptions = {
         threshold: 0.1,
