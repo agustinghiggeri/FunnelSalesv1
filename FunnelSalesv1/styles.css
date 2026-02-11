@@ -1273,6 +1273,11 @@ strong {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    margin-bottom: 24px;
+}
+
+.form-group:last-of-type {
+    margin-bottom: 0;
 }
 
 .form-label {
@@ -1592,6 +1597,7 @@ body.modal-open {
     gap: 8px;
     position: relative;
     overflow: hidden;
+    margin-top: 28px;
 }
 
 .btn-continue::before {
