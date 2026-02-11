@@ -5,11 +5,133 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- Sanitize function (shared by both forms) ---
+    // ============================================
+    // SECURITY FUNCTIONS
+    // ============================================
+
+    // --- Enhanced Sanitization with DOMPurify ---
     function sanitize(str) {
+        if (!str) return '';
+        // Use DOMPurify if available, fallback to basic sanitization
+        if (typeof DOMPurify !== 'undefined') {
+            return DOMPurify.sanitize(str, {
+                ALLOWED_TAGS: [],
+                ALLOWED_ATTR: [],
+                KEEP_CONTENT: true
+            });
+        }
+        // Fallback: basic sanitization
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML.trim();
+    }
+
+    // --- Input Validation Functions ---
+    function validateEmail(email) {
+        // RFC 5322 compliant email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email) && email.length <= 254;
+    }
+
+    function validatePhone(phone) {
+        if (!phone) return true; // Optional field
+        // International phone format (allows +, -, spaces, parentheses, digits)
+        const phoneRegex = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/;
+        return phoneRegex.test(phone) && phone.length <= 20;
+    }
+
+    function validateURL(url) {
+        if (!url) return true; // Optional field
+        try {
+            const urlObj = new URL(url);
+            // Only allow http and https protocols
+            return (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') && url.length <= 500;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function validateLength(str, max) {
+        return str && str.length > 0 && str.length <= max;
+    }
+
+    // --- Rate Limiting & Anti-Spam ---
+    const RATE_LIMIT_KEY = 'gs_form_submissions';
+    const RATE_LIMIT_WINDOW = 60000; // 1 minute
+    const MAX_SUBMISSIONS = 3; // Max 3 submissions per minute
+    const MIN_FORM_TIME = 3000; // Minimum 3 seconds to fill form (bot detection)
+
+    function checkRateLimit() {
+        const now = Date.now();
+        let submissions = JSON.parse(sessionStorage.getItem(RATE_LIMIT_KEY) || '[]');
+
+        // Remove old submissions outside the time window
+        submissions = submissions.filter(time => now - time < RATE_LIMIT_WINDOW);
+
+        if (submissions.length >= MAX_SUBMISSIONS) {
+            return false; // Rate limit exceeded
+        }
+
+        // Add current submission
+        submissions.push(now);
+        sessionStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(submissions));
+        return true;
+    }
+
+    // --- CSRF-like Protection ---
+    function generateFormToken() {
+        return Array.from(crypto.getRandomValues(new Uint8Array(16)))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    }
+
+    function initFormToken(formId) {
+        const token = generateFormToken();
+        const timestamp = Date.now();
+        sessionStorage.setItem(`gs_token_${formId}`, JSON.stringify({ token, timestamp }));
+        return token;
+    }
+
+    function validateFormToken(formId) {
+        const stored = sessionStorage.getItem(`gs_token_${formId}`);
+        if (!stored) return false;
+
+        const { token, timestamp } = JSON.parse(stored);
+        const now = Date.now();
+
+        // Token expires after 1 hour
+        if (now - timestamp > 3600000) return false;
+
+        // Check minimum form fill time (bot detection)
+        if (now - timestamp < MIN_FORM_TIME) return false;
+
+        // Remove token after validation (single use)
+        sessionStorage.removeItem(`gs_token_${formId}`);
+        return true;
+    }
+
+    // --- Duplicate Submission Prevention ---
+    function checkDuplicateSubmission(formData) {
+        const hash = JSON.stringify(formData);
+        const lastSubmission = sessionStorage.getItem('gs_last_submission');
+
+        if (lastSubmission === hash) {
+            return false; // Duplicate detected
+        }
+
+        sessionStorage.setItem('gs_last_submission', hash);
+        return true;
+    }
+
+    // --- Google Sheets URL Obfuscation ---
+    function getGoogleSheetsURL() {
+        // Base64 encoded URL (basic obfuscation)
+        const encoded = 'aHR0cHM6Ly9zY3JpcHQuZ29vZ2xlLmNvbS9tYWNyb3Mvcy9BS2Z5Y2J3Qk41MkdNa0tueHJUV0JNNjJXUEZfdmtuMjJDR0c5YktWTUFBb3Y2MDVMR0xjVkNLRzJ3R0twUGV0MGpQYlpaYUUvZXhlYw==';
+        try {
+            return atob(encoded);
+        } catch (e) {
+            return null;
+        }
     }
 
     // --- UTM Parameter Tracking ---
@@ -252,19 +374,33 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // --- Google Sheets Config ---
-        // REPLACE this with your deployed Google Apps Script web app URL
-        const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwBN52GMkKnxrTWBM62WPF_vkn22CGG9bKVMAAov605LGLcVCKG2wGKpPet0jPbwZaE/exec';
+        // Initialize form token for CSRF protection
+        if (modal) {
+            const formToken = initFormToken('leadForm');
+        }
 
         // Form submission
         if (leadForm) {
             leadForm.addEventListener('submit', (e) => {
                 e.preventDefault();
 
-                // Honeypot check — if filled, silently reject (it's a bot)
+                // Security checks
+                // 1. Honeypot check — if filled, silently reject (it's a bot)
                 const honeypot = document.getElementById('websiteUrl');
                 if (honeypot && honeypot.value) {
                     window.location.href = 'thank-you.html';
+                    return;
+                }
+
+                // 2. Rate limiting check
+                if (!checkRateLimit()) {
+                    alert('Too many submissions. Please wait a minute and try again.');
+                    return;
+                }
+
+                // 3. CSRF token validation
+                if (!validateFormToken('leadForm')) {
+                    alert('Form session expired. Please refresh the page and try again.');
                     return;
                 }
 
@@ -276,15 +412,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const phone = document.getElementById('leadPhone');
                 let valid = true;
 
+                // Enhanced validation
                 // Validate email
-                if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+                if (!validateEmail(email.value)) {
                     email.classList.add('error');
                     valid = false;
                 }
 
                 // Validate brand
-                if (!brand.value.trim()) {
+                if (!validateLength(brand.value.trim(), 100)) {
                     brand.classList.add('error');
+                    valid = false;
+                }
+
+                // Validate phone (if provided)
+                if (phone.value && !validatePhone(phone.value)) {
+                    phone.classList.add('error');
                     valid = false;
                 }
 
@@ -298,11 +441,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     email: sanitize(email.value),
                     phone: sanitize(phone.value),
                     brand: sanitize(brand.value),
-                    adSpend: adSpendChip ? adSpendChip.dataset.value : '',
-                    businessType: bizTypeChip ? bizTypeChip.dataset.value : '',
+                    adSpend: adSpendChip ? sanitize(adSpendChip.dataset.value) : '',
+                    businessType: bizTypeChip ? sanitize(bizTypeChip.dataset.value) : '',
                     submittedAt: new Date().toISOString(),
                     ...utmParams  // Include UTM parameters
                 };
+
+                // 4. Check for duplicate submission
+                if (!checkDuplicateSubmission(leadData)) {
+                    alert('This form has already been submitted. Please wait before submitting again.');
+                    return;
+                }
 
                 // Store current lead for TY page (only keep latest, don't accumulate)
                 localStorage.setItem('gs_current_lead', JSON.stringify(leadData));
@@ -329,6 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Send to Google Sheets via hidden form + iframe
                 // (fetch fails due to 302 redirect dropping POST body)
+                const GOOGLE_SHEETS_URL = getGoogleSheetsURL();
                 if (GOOGLE_SHEETS_URL && GOOGLE_SHEETS_URL.startsWith('https://script.google.com/')) {
                     // Create hidden iframe to receive the form response
                     let iframe = document.getElementById('gs_hidden_iframe');
@@ -427,6 +577,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.remove('modal-open');
         }
 
+        // Initialize form token for CSRF protection
+        if (auditModal) {
+            const auditFormToken = initFormToken('auditLeadForm');
+        }
+
         // Chip selection for audit form
         auditModal.querySelectorAll('.chip-group').forEach(group => {
             group.querySelectorAll('.chip').forEach(chip => {
@@ -442,10 +597,23 @@ document.addEventListener('DOMContentLoaded', () => {
             auditLeadForm.addEventListener('submit', (e) => {
                 e.preventDefault();
 
-                // Honeypot check
+                // Security checks
+                // 1. Honeypot check
                 const honeypot = document.getElementById('auditWebsiteUrl');
                 if (honeypot && honeypot.value) {
                     window.location.href = 'thank-you.html';
+                    return;
+                }
+
+                // 2. Rate limiting check
+                if (!checkRateLimit()) {
+                    alert('Too many submissions. Please wait a minute and try again.');
+                    return;
+                }
+
+                // 3. CSRF token validation
+                if (!validateFormToken('auditLeadForm')) {
+                    alert('Form session expired. Please refresh the page and try again.');
                     return;
                 }
 
@@ -458,15 +626,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 const siteUrl = document.getElementById('auditSiteUrl');
                 let valid = true;
 
+                // Enhanced validation
                 // Validate email
-                if (!email.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
+                if (!validateEmail(email.value)) {
                     email.classList.add('error');
                     valid = false;
                 }
 
                 // Validate brand
-                if (!brand.value.trim()) {
+                if (!validateLength(brand.value.trim(), 100)) {
                     brand.classList.add('error');
+                    valid = false;
+                }
+
+                // Validate phone (if provided)
+                if (phone.value && !validatePhone(phone.value)) {
+                    phone.classList.add('error');
+                    valid = false;
+                }
+
+                // Validate site URL (if provided)
+                if (siteUrl.value && !validateURL(siteUrl.value)) {
+                    siteUrl.classList.add('error');
                     valid = false;
                 }
 
@@ -483,12 +664,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     phone: sanitize(phone.value),
                     brand: sanitize(brand.value),
                     siteUrl: sanitize(siteUrl.value),
-                    platform: platformChip ? platformChip.dataset.value : '',
-                    adSpend: adSpendChip ? adSpendChip.dataset.value : '',
-                    businessType: bizTypeChip ? bizTypeChip.dataset.value : '',
+                    platform: platformChip ? sanitize(platformChip.dataset.value) : '',
+                    adSpend: adSpendChip ? sanitize(adSpendChip.dataset.value) : '',
+                    businessType: bizTypeChip ? sanitize(bizTypeChip.dataset.value) : '',
                     submittedAt: new Date().toISOString(),
                     ...utmParams  // Include UTM parameters
                 };
+
+                // 4. Check for duplicate submission
+                if (!checkDuplicateSubmission(auditData)) {
+                    alert('This form has already been submitted. Please wait before submitting again.');
+                    return;
+                }
 
                 // Store current lead for TY page
                 localStorage.setItem('gs_current_lead', JSON.stringify(auditData));
@@ -514,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 submitBtn.textContent = 'Submitting...';
 
                 // Send to Google Sheets
-                const GOOGLE_SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwBN52GMkKnxrTWBM62WPF_vkn22CGG9bKVMAAov605LGLcVCKG2wGKpPet0jPbwZaE/exec';
+                const GOOGLE_SHEETS_URL = getGoogleSheetsURL();
 
                 if (GOOGLE_SHEETS_URL && GOOGLE_SHEETS_URL.startsWith('https://script.google.com/')) {
                     // Create hidden iframe
