@@ -1087,9 +1087,96 @@ strong {
     margin-top: 1px;
 }
 
-/* Calendly */
+/* LinkedIn Section */
+.ty-linkedin {
+    max-width: 560px;
+    margin: 32px auto 0;
+    text-align: center;
+    padding: 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.ty-linkedin-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+.ty-linkedin .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ty-linkedin .btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Certifications Section */
+.ty-certifications-section {
+    padding: 40px 0 80px;
+    background: var(--bg-secondary);
+}
+
+.ty-certifications-content {
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.ty-certifications-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 32px;
+}
+
+.ty-certifications-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 24px;
+}
+
+.certification-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 32px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.certification-badge:hover {
+    transform: translateY(-4px);
+    border-color: var(--purple);
+    box-shadow: 0 8px 24px rgba(109, 90, 205, 0.15);
+}
+
+.certification-badge img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    filter: brightness(1.1);
+}
+
+.certification-badge p {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* Calendly (kept for backwards compatibility, but hidden by default) */
 .ty-calendly-section {
     padding: 40px 0 80px;
+    display: none; /* Hidden since V2 uses calendar embed in modal */
 }
 
 .calendly-wrapper {
@@ -2760,4 +2847,118 @@ body.light-theme .btn-back:hover {
 body.light-theme .step-trust {
     border-top: 1px solid rgba(0, 0, 0, 0.1);
     color: #718096;
+}
+
+/* ============================================
+   V2 CALENDAR EMBED STYLES
+   ============================================ */
+
+/* Calendar Container */
+.calendar-container {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 32px;
+    overflow: hidden;
+}
+
+.calendar-container iframe {
+    border-radius: 8px;
+    max-width: 100%;
+    display: block;
+}
+
+/* Calendar Instructions */
+.calendar-instructions {
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+}
+
+.calendar-instructions strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Booking Confirmation CTA */
+.calendar-confirm-section {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.calendar-confirm-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 14px;
+}
+
+.calendar-confirm-hint svg {
+    color: #22c55e;
+    flex-shrink: 0;
+}
+
+.btn-booking-confirmed {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 24px;
+    background: #22c55e;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.btn-booking-confirmed:hover {
+    background: #16a34a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+}
+
+/* Light theme overrides */
+body.light-theme .calendar-confirm-hint {
+    color: #6b7280;
+}
+
+/* Light Theme - Calendar */
+body.light-theme .calendar-container {
+    background: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .calendar-instructions {
+    background: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #4a5568;
+}
+
+body.light-theme .calendar-instructions strong {
+    color: #0a0a0a;
+}
+
+/* Responsive Calendar */
+@media (max-width: 768px) {
+    .calendar-container {
+        padding: 12px;
+    }
+
+    .calendar-container iframe {
+        height: 500px;
+    }
 }

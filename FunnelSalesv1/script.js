@@ -6,6 +6,15 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ============================================
+    // V2 FUNNEL DETECTION
+    // ============================================
+
+    const isV2 = window.location.pathname.includes('v2');
+    const isAuditPage = document.body.classList.contains('audit-page');
+    const funnelType = isAuditPage ? 'audit' : 'main';
+    const sheetName = isV2 ? `${funnelType}_discovery_v2` : (isAuditPage ? 'audit' : '');
+
+    // ============================================
     // SECURITY FUNCTIONS
     // ============================================
 
@@ -208,11 +217,18 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             sessionStorage.setItem('leadForm_step1', JSON.stringify(step1Data));
 
-            // Update summary
-            const summaryText = phone.value
-                ? `${email.value} • ${phone.value}`
-                : email.value;
-            step1Summary.textContent = summaryText;
+            // For v2: Submit data immediately when reaching Step 2 (calendar)
+            if (isV2) {
+                submitV2FormData(step1Data, 'lead');
+            }
+
+            // Update summary (skip for v2 since no summary in calendar step)
+            if (step1Summary) {
+                const summaryText = phone.value
+                    ? `${email.value} • ${phone.value}`
+                    : email.value;
+                step1Summary.textContent = summaryText;
+            }
 
             // Animate transition
             step1.classList.remove('active');
@@ -262,6 +278,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 300);
             });
         }
+
+        // Booking confirmed button (v2 only)
+        const leadBookingConfirmedBtn = document.getElementById('leadBookingConfirmedBtn');
+        if (leadBookingConfirmedBtn) {
+            leadBookingConfirmedBtn.addEventListener('click', () => {
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'booking_confirmed', {
+                        event_category: 'form_v2',
+                        event_label: 'Lead - Booking Confirmed'
+                    });
+                }
+                window.location.href = 'thank-you.html';
+            });
+        }
     }
 
     // --- Audit Form (auditLeadForm) Step Navigation ---
@@ -309,11 +339,18 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             sessionStorage.setItem('auditForm_step1', JSON.stringify(step1Data));
 
-            // Update summary
-            const summaryText = phone.value
-                ? `${email.value} • ${phone.value}`
-                : email.value;
-            step1Summary.textContent = summaryText;
+            // For v2: Submit data immediately when reaching Step 2 (calendar)
+            if (isV2) {
+                submitV2FormData(step1Data, 'audit');
+            }
+
+            // Update summary (skip for v2 since no summary in calendar step)
+            if (step1Summary) {
+                const summaryText = phone.value
+                    ? `${email.value} • ${phone.value}`
+                    : email.value;
+                step1Summary.textContent = summaryText;
+            }
 
             // Animate transition
             step1.classList.remove('active');
@@ -361,6 +398,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     progressFill.style.width = '50%';
                     progressPercent.textContent = '50%';
                 }, 300);
+            });
+        }
+
+        // Booking confirmed button (v2 only)
+        const auditBookingConfirmedBtn = document.getElementById('auditBookingConfirmedBtn');
+        if (auditBookingConfirmedBtn) {
+            auditBookingConfirmedBtn.addEventListener('click', () => {
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'booking_confirmed', {
+                        event_category: 'form_v2',
+                        event_label: 'Audit - Booking Confirmed'
+                    });
+                }
+                window.location.href = 'thank-you.html';
             });
         }
     }
@@ -520,6 +571,87 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
     }
 
+    // ============================================
+    // V2 FORM SUBMISSION (Calendar Flow) - Shared Function
+    // ============================================
+
+    function submitV2FormData(formData, formType = 'lead') {
+        console.log('submitV2FormData called', { formData, formType });
+
+        // Security checks
+        if (!checkRateLimit()) {
+            console.warn('Rate limit exceeded for v2 submission');
+            return;
+        }
+
+        // Validate form token based on form type
+        const tokenFormName = formType === 'audit' ? 'auditLeadForm' : 'leadForm';
+        if (!validateFormToken(tokenFormName)) {
+            console.warn('CSRF token invalid for v2 submission');
+            return;
+        }
+
+        // Prepare v2 data (email + phone + timestamp only)
+        const v2Data = {
+            email: formData.email,
+            phone: formData.phone || '',
+            timestamp: new Date().toISOString(),
+            sheetName: sheetName, // Use the sheetName variable from top of file
+            ...utmParams  // Include UTM parameters
+        };
+
+        // Check for duplicate submission
+        if (!checkDuplicateSubmission(v2Data)) {
+            console.warn('Duplicate v2 submission detected');
+            return;
+        }
+
+        // Store for tracking
+        localStorage.setItem('gs_current_lead', JSON.stringify(v2Data));
+
+        // Track v2 form step 2 view (calendar booking)
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'calendar_step_view', {
+                event_category: 'form_v2',
+                event_label: formType === 'audit' ? 'Audit Discovery Call Calendar' : 'Discovery Call Calendar'
+            });
+        }
+
+        // Send to Google Sheets via hidden form
+        const GOOGLE_SHEETS_URL = getGoogleSheetsURL();
+        if (GOOGLE_SHEETS_URL && GOOGLE_SHEETS_URL.startsWith('https://script.google.com/')) {
+            // Create hidden iframe to receive the form response
+            let iframe = document.getElementById('gs_hidden_iframe');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'gs_hidden_iframe';
+                iframe.name = 'gs_hidden_iframe';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+            }
+
+            // Build hidden form
+            const hiddenForm = document.createElement('form');
+            hiddenForm.method = 'POST';
+            hiddenForm.action = GOOGLE_SHEETS_URL;
+            hiddenForm.target = 'gs_hidden_iframe';
+
+            Object.entries(v2Data).forEach(([key, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
+                hiddenForm.appendChild(input);
+            });
+
+            document.body.appendChild(hiddenForm);
+            hiddenForm.submit();
+            hiddenForm.remove();
+
+            console.log('V2 form data submitted to Google Sheets', v2Data);
+        }
+    }
+
     // --- Form Modal ---
     const modal = document.getElementById('formModal');
     const modalClose = document.getElementById('modalClose');
@@ -590,6 +722,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modal) {
             const formToken = initFormToken('leadForm');
         }
+
+        // ============================================
+        // FORM SUBMISSION HANDLERS
+        // ============================================
 
         // Form submission
         if (leadForm) {
