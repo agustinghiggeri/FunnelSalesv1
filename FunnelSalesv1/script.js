@@ -278,6 +278,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 300);
             });
         }
+
+        // Booking confirmed button (v2 only)
+        const leadBookingConfirmedBtn = document.getElementById('leadBookingConfirmedBtn');
+        if (leadBookingConfirmedBtn) {
+            leadBookingConfirmedBtn.addEventListener('click', () => {
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'booking_confirmed', {
+                        event_category: 'form_v2',
+                        event_label: 'Lead - Booking Confirmed'
+                    });
+                }
+                window.location.href = 'thank-you.html';
+            });
+        }
     }
 
     // --- Audit Form (auditLeadForm) Step Navigation ---
@@ -291,23 +305,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const progressPercent = document.getElementById('auditProgressPercent');
         const step1Summary = document.getElementById('auditStep1Summary');
 
-        console.log('setupAuditFormSteps called', {
-            step1: !!step1,
-            step2: !!step2,
-            continueBtn: !!continueBtn,
-            isV2: isV2,
-            pathname: window.location.pathname
-        });
-
-        if (!step1 || !step2 || !continueBtn) {
-            console.log('Audit form elements not found, skipping setup');
-            return;
-        }
+        if (!step1 || !step2 || !continueBtn) return;
 
         // Step 1 -> Step 2
         continueBtn.addEventListener('click', () => {
-            console.log('Audit continue button clicked');
-
             // Validate step 1 fields
             const email = document.getElementById('auditEmail');
             const phone = document.getElementById('auditPhone');
@@ -329,14 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 valid = false;
             }
 
-            console.log('Audit form validation result:', { valid, emailValue: email.value, phoneValue: phone.value });
-
-            if (!valid) {
-                console.log('Audit form validation failed, not proceeding to step 2');
-                return;
-            }
-
-            console.log('Audit form validated successfully, proceeding to step 2');
+            if (!valid) return;
 
             // Save step 1 data
             const step1Data = {
@@ -347,10 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // For v2: Submit data immediately when reaching Step 2 (calendar)
             if (isV2) {
-                console.log('Audit form is V2, submitting data to Google Sheets');
                 submitV2FormData(step1Data, 'audit');
-            } else {
-                console.log('Audit form is V1, skipping auto-submit');
             }
 
             // Update summary (skip for v2 since no summary in calendar step)
@@ -407,6 +398,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     progressFill.style.width = '50%';
                     progressPercent.textContent = '50%';
                 }, 300);
+            });
+        }
+
+        // Booking confirmed button (v2 only)
+        const auditBookingConfirmedBtn = document.getElementById('auditBookingConfirmedBtn');
+        if (auditBookingConfirmedBtn) {
+            auditBookingConfirmedBtn.addEventListener('click', () => {
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'booking_confirmed', {
+                        event_category: 'form_v2',
+                        event_label: 'Audit - Booking Confirmed'
+                    });
+                }
+                window.location.href = 'thank-you.html';
             });
         }
     }

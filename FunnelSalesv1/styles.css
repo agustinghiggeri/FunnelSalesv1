@@ -2886,6 +2886,56 @@ body.light-theme .step-trust {
     font-weight: 600;
 }
 
+/* Booking Confirmation CTA */
+.calendar-confirm-section {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.calendar-confirm-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 14px;
+}
+
+.calendar-confirm-hint svg {
+    color: #22c55e;
+    flex-shrink: 0;
+}
+
+.btn-booking-confirmed {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 14px 24px;
+    background: #22c55e;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.btn-booking-confirmed:hover {
+    background: #16a34a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+}
+
+/* Light theme overrides */
+body.light-theme .calendar-confirm-hint {
+    color: #6b7280;
+}
+
 /* Light Theme - Calendar */
 body.light-theme .calendar-container {
     background: #f8f9fa;
