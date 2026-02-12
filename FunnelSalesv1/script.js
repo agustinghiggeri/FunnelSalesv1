@@ -325,11 +325,18 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             sessionStorage.setItem('auditForm_step1', JSON.stringify(step1Data));
 
-            // Update summary
-            const summaryText = phone.value
-                ? `${email.value} • ${phone.value}`
-                : email.value;
-            step1Summary.textContent = summaryText;
+            // For v2: Submit data immediately when reaching Step 2 (calendar)
+            if (isV2) {
+                submitV2FormData(step1Data);
+            }
+
+            // Update summary (skip for v2 since no summary in calendar step)
+            if (step1Summary) {
+                const summaryText = phone.value
+                    ? `${email.value} • ${phone.value}`
+                    : email.value;
+                step1Summary.textContent = summaryText;
+            }
 
             // Animate transition
             step1.classList.remove('active');
