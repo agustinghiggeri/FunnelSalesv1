@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         event_label: 'Lead - Booking Confirmed'
                     });
                 }
-                window.location.href = 'thank-you.html';
+                window.location.href = 'thank-you-light.html';
             });
         }
     }
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         event_label: 'Audit - Booking Confirmed'
                     });
                 }
-                window.location.href = 'thank-you.html';
+                window.location.href = 'thank-you-light.html';
             });
         }
     }
@@ -736,7 +736,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 1. Honeypot check — if filled, silently reject (it's a bot)
                 const honeypot = document.getElementById('websiteUrl');
                 if (honeypot && honeypot.value) {
-                    window.location.href = 'thank-you.html';
+                    window.location.href = 'thank-you-light.html';
                     return;
                 }
 
@@ -858,12 +858,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Redirect after giving the form time to submit
                     setTimeout(() => {
-                        window.location.href = 'thank-you.html';
+                        window.location.href = 'thank-you-light.html';
                     }, 1000);
                 } else {
                     // No Sheets URL configured — just redirect
                     setTimeout(() => {
-                        window.location.href = 'thank-you.html';
+                        window.location.href = 'thank-you-light.html';
                     }, 400);
                 }
             });
@@ -949,7 +949,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 1. Honeypot check
                 const honeypot = document.getElementById('auditWebsiteUrl');
                 if (honeypot && honeypot.value) {
-                    window.location.href = 'thank-you.html';
+                    window.location.href = 'thank-you-light.html';
                     return;
                 }
 
@@ -1082,11 +1082,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Redirect after submission
                     setTimeout(() => {
-                        window.location.href = 'thank-you.html';
+                        window.location.href = 'thank-you-light.html';
                     }, 1000);
                 } else {
                     setTimeout(() => {
-                        window.location.href = 'thank-you.html';
+                        window.location.href = 'thank-you-light.html';
                     }, 400);
                 }
             });
