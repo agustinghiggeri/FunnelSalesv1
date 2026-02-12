@@ -219,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // For v2: Submit data immediately when reaching Step 2 (calendar)
             if (isV2) {
-                submitV2FormData(step1Data);
+                submitV2FormData(step1Data, 'lead');
             }
 
             // Update summary (skip for v2 since no summary in calendar step)
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // For v2: Submit data immediately when reaching Step 2 (calendar)
             if (isV2) {
                 console.log('Audit form is V2, submitting data to Google Sheets');
-                submitV2FormData(step1Data);
+                submitV2FormData(step1Data, 'audit');
             } else {
                 console.log('Audit form is V1, skipping auto-submit');
             }
@@ -566,6 +566,87 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
     }
 
+    // ============================================
+    // V2 FORM SUBMISSION (Calendar Flow) - Shared Function
+    // ============================================
+
+    function submitV2FormData(formData, formType = 'lead') {
+        console.log('submitV2FormData called', { formData, formType });
+
+        // Security checks
+        if (!checkRateLimit()) {
+            console.warn('Rate limit exceeded for v2 submission');
+            return;
+        }
+
+        // Validate form token based on form type
+        const tokenFormName = formType === 'audit' ? 'auditLeadForm' : 'leadForm';
+        if (!validateFormToken(tokenFormName)) {
+            console.warn('CSRF token invalid for v2 submission');
+            return;
+        }
+
+        // Prepare v2 data (email + phone + timestamp only)
+        const v2Data = {
+            email: formData.email,
+            phone: formData.phone || '',
+            timestamp: new Date().toISOString(),
+            sheetName: sheetName, // Use the sheetName variable from top of file
+            ...utmParams  // Include UTM parameters
+        };
+
+        // Check for duplicate submission
+        if (!checkDuplicateSubmission(v2Data)) {
+            console.warn('Duplicate v2 submission detected');
+            return;
+        }
+
+        // Store for tracking
+        localStorage.setItem('gs_current_lead', JSON.stringify(v2Data));
+
+        // Track v2 form step 2 view (calendar booking)
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'calendar_step_view', {
+                event_category: 'form_v2',
+                event_label: formType === 'audit' ? 'Audit Discovery Call Calendar' : 'Discovery Call Calendar'
+            });
+        }
+
+        // Send to Google Sheets via hidden form
+        const GOOGLE_SHEETS_URL = getGoogleSheetsURL();
+        if (GOOGLE_SHEETS_URL && GOOGLE_SHEETS_URL.startsWith('https://script.google.com/')) {
+            // Create hidden iframe to receive the form response
+            let iframe = document.getElementById('gs_hidden_iframe');
+            if (!iframe) {
+                iframe = document.createElement('iframe');
+                iframe.id = 'gs_hidden_iframe';
+                iframe.name = 'gs_hidden_iframe';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+            }
+
+            // Build hidden form
+            const hiddenForm = document.createElement('form');
+            hiddenForm.method = 'POST';
+            hiddenForm.action = GOOGLE_SHEETS_URL;
+            hiddenForm.target = 'gs_hidden_iframe';
+
+            Object.entries(v2Data).forEach(([key, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
+                hiddenForm.appendChild(input);
+            });
+
+            document.body.appendChild(hiddenForm);
+            hiddenForm.submit();
+            hiddenForm.remove();
+
+            console.log('V2 form data submitted to Google Sheets', v2Data);
+        }
+    }
+
     // --- Form Modal ---
     const modal = document.getElementById('formModal');
     const modalClose = document.getElementById('modalClose');
@@ -635,83 +716,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Initialize form token for CSRF protection
         if (modal) {
             const formToken = initFormToken('leadForm');
-        }
-
-        // ============================================
-        // V2 FORM SUBMISSION (Calendar Flow)
-        // ============================================
-
-        function submitV2FormData(formData) {
-            // Security checks
-            if (!checkRateLimit()) {
-                console.warn('Rate limit exceeded for v2 submission');
-                return;
-            }
-
-            if (!validateFormToken('leadForm')) {
-                console.warn('CSRF token invalid for v2 submission');
-                return;
-            }
-
-            // Prepare v2 data (email + phone + timestamp only)
-            const v2Data = {
-                email: formData.email,
-                phone: formData.phone || '',
-                timestamp: new Date().toISOString(),
-                sheetName: sheetName, // Use the sheetName variable from top of file
-                ...utmParams  // Include UTM parameters
-            };
-
-            // Check for duplicate submission
-            if (!checkDuplicateSubmission(v2Data)) {
-                console.warn('Duplicate v2 submission detected');
-                return;
-            }
-
-            // Store for tracking
-            localStorage.setItem('gs_current_lead', JSON.stringify(v2Data));
-
-            // Track v2 form step 2 view (calendar booking)
-            if (typeof gtag !== 'undefined') {
-                gtag('event', 'calendar_step_view', {
-                    event_category: 'form_v2',
-                    event_label: 'Discovery Call Calendar'
-                });
-            }
-
-            // Send to Google Sheets via hidden form
-            const GOOGLE_SHEETS_URL = getGoogleSheetsURL();
-            if (GOOGLE_SHEETS_URL && GOOGLE_SHEETS_URL.startsWith('https://script.google.com/')) {
-                // Create hidden iframe to receive the form response
-                let iframe = document.getElementById('gs_hidden_iframe');
-                if (!iframe) {
-                    iframe = document.createElement('iframe');
-                    iframe.id = 'gs_hidden_iframe';
-                    iframe.name = 'gs_hidden_iframe';
-                    iframe.style.display = 'none';
-                    document.body.appendChild(iframe);
-                }
-
-                // Build hidden form
-                const hiddenForm = document.createElement('form');
-                hiddenForm.method = 'POST';
-                hiddenForm.action = GOOGLE_SHEETS_URL;
-                hiddenForm.target = 'gs_hidden_iframe';
-
-                Object.entries(v2Data).forEach(([key, value]) => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = value;
-                    hiddenForm.appendChild(input);
-                });
-
-                document.body.appendChild(hiddenForm);
-                hiddenForm.submit();
-                hiddenForm.remove();
-
-                console.log('V2 form data submitted to Google Sheets');
-            }
         }
 
         // ============================================
