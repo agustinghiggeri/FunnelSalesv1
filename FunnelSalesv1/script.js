@@ -291,10 +291,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const progressPercent = document.getElementById('auditProgressPercent');
         const step1Summary = document.getElementById('auditStep1Summary');
 
-        if (!step1 || !step2 || !continueBtn) return;
+        console.log('setupAuditFormSteps called', {
+            step1: !!step1,
+            step2: !!step2,
+            continueBtn: !!continueBtn,
+            isV2: isV2,
+            pathname: window.location.pathname
+        });
+
+        if (!step1 || !step2 || !continueBtn) {
+            console.log('Audit form elements not found, skipping setup');
+            return;
+        }
 
         // Step 1 -> Step 2
         continueBtn.addEventListener('click', () => {
+            console.log('Audit continue button clicked');
+
             // Validate step 1 fields
             const email = document.getElementById('auditEmail');
             const phone = document.getElementById('auditPhone');
@@ -316,7 +329,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 valid = false;
             }
 
-            if (!valid) return;
+            console.log('Audit form validation result:', { valid, emailValue: email.value, phoneValue: phone.value });
+
+            if (!valid) {
+                console.log('Audit form validation failed, not proceeding to step 2');
+                return;
+            }
+
+            console.log('Audit form validated successfully, proceeding to step 2');
 
             // Save step 1 data
             const step1Data = {
@@ -327,7 +347,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // For v2: Submit data immediately when reaching Step 2 (calendar)
             if (isV2) {
+                console.log('Audit form is V2, submitting data to Google Sheets');
                 submitV2FormData(step1Data);
+            } else {
+                console.log('Audit form is V1, skipping auto-submit');
             }
 
             // Update summary (skip for v2 since no summary in calendar step)
