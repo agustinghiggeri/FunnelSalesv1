@@ -2761,3 +2761,67 @@ body.light-theme .step-trust {
     border-top: 1px solid rgba(0, 0, 0, 0.1);
     color: #718096;
 }
+
+/* ============================================
+   V2 CALENDAR EMBED STYLES
+   ============================================ */
+
+/* Calendar Container */
+.calendar-container {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 32px;
+    overflow: hidden;
+}
+
+.calendar-container iframe {
+    border-radius: 8px;
+    max-width: 100%;
+    display: block;
+}
+
+/* Calendar Instructions */
+.calendar-instructions {
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+}
+
+.calendar-instructions strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Light Theme - Calendar */
+body.light-theme .calendar-container {
+    background: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .calendar-instructions {
+    background: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    color: #4a5568;
+}
+
+body.light-theme .calendar-instructions strong {
+    color: #0a0a0a;
+}
+
+/* Responsive Calendar */
+@media (max-width: 768px) {
+    .calendar-container {
+        padding: 12px;
+    }
+
+    .calendar-container iframe {
+        height: 500px;
+    }
+}
